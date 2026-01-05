@@ -11,3 +11,5 @@ obj/
 # IDE
 .vs/
 *.user
+
+ratings_full.csv
