@@ -1,0 +1,13 @@
+﻿# Data files
+products.csv
+ratings.csv
+
+# Build output
+publish/
+deploy.zip
+bin/
+obj/
+
+# IDE
+.vs/
+*.user
