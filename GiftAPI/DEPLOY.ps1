@@ -1,12 +1,10 @@
 # GiftFinder Azure Deployment Script
 # Run this from your GiftAPI folder
 
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  GiftFinder Azure Deployment Script" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "GiftFinder Azure Deployment" -ForegroundColor Cyan
 Write-Host ""
 
-# Step 1: Check we're in the right folder
+# Check if we're in the right folder by looking for required files
 $requiredFiles = @("GiftAPI.csproj", "Program.cs", "products.csv", "ratings.csv")
 $missing = $requiredFiles | Where-Object { -not (Test-Path $_) }
 
@@ -18,7 +16,7 @@ if ($missing) {
 
 Write-Host "[1/5] Checking required files... OK" -ForegroundColor Green
 
-# Step 2: Copy new files (index.html and RecommendationService.cs should already be updated)
+# Verify updated files are present
 Write-Host "[2/5] Verifying updated files..." -ForegroundColor Yellow
 
 if (Test-Path "index.html") {
@@ -35,19 +33,27 @@ if (Test-Path "RecommendationService.cs") {
     exit 1
 }
 
-# Step 3: Clean and build
+# Clean old build and create new one
 Write-Host "[3/5] Building project..." -ForegroundColor Yellow
+
+# Delete old publish folder if it exists
 Remove-Item -Recurse -Force ./publish -ErrorAction SilentlyContinue
+
+# Build in Release mode (optimized for production)
 dotnet publish -c Release -o ./publish
 
+# Check if build succeeded
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Build failed!" -ForegroundColor Red
     exit 1
 }
+
 Write-Host "  Build successful!" -ForegroundColor Green
 
-# Step 4: Copy data files to publish folder
+# Copy data files to the publish folder
+# These files need to be included in the deployment package
 Write-Host "[4/5] Copying data files..." -ForegroundColor Yellow
+
 Copy-Item products.csv ./publish/
 Copy-Item ratings.csv ./publish/
 Copy-Item appsettings.json ./publish/
@@ -56,18 +62,21 @@ Copy-Item index.html ./publish/
 Write-Host "  Files copied:" -ForegroundColor Green
 Get-ChildItem ./publish | ForEach-Object { Write-Host "    - $($_.Name)" }
 
-# Step 5: Create deployment zip
+# Create zip file for Azure deployment
 Write-Host "[5/5] Creating deployment package..." -ForegroundColor Yellow
+
+# Remove old zip if it exists
 Remove-Item ./deploy.zip -ErrorAction SilentlyContinue
+
+# Compress everything in publish folder into deploy.zip
 Compress-Archive -Path ./publish/* -DestinationPath ./deploy.zip -Force
 
+# Show zip file size
 $zipSize = (Get-Item ./deploy.zip).Length / 1MB
 Write-Host "  deploy.zip created ($([math]::Round($zipSize, 2)) MB)" -ForegroundColor Green
 
 Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  DEPLOYMENT READY!" -ForegroundColor Green
-Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "DEPLOYMENT READY!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "1. Go to: https://giftrecommenderlb.scm.azurewebsites.net" -ForegroundColor White

@@ -11,14 +11,17 @@ deploy.zip
 # NuGet
 *.nuget.props
 *.nuget.targets
+project.assets.json
 project.nuget.cache
 .nuget/
+packages/
 
 # Logs
 logs/
 *.log
+LogFiles/
 
-# Data files - EXCLUDED FROM GITHUB
+# Data files - TOO LARGE FOR GITHUB
 data/
 *.csv
 *.json.gz
@@ -31,6 +34,7 @@ __pycache__/
 *.py[cod]
 *.so
 .Python
+*.pyc
 
 # IDE
 .vs/
@@ -39,7 +43,15 @@ __pycache__/
 *.user
 *.userosscache
 *.sln.docstates
+.idea/
 
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
