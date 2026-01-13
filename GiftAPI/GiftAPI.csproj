@@ -1,40 +1,28 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   
-  <!-- Project configuration settings -->
   <PropertyGroup>
     
-    <!-- Target .NET 8.0 framework (latest LTS version) -->
     <TargetFramework>net8.0</TargetFramework>
     
-    <!-- Disable implicit usings - we explicitly import what we need -->
-    <!-- This makes the code clearer and easier to understand for learning -->
     <ImplicitUsings>disable</ImplicitUsings>
     
-    <!-- Enable nullable reference types for better null safety -->
-    <!-- Helps catch null reference errors at compile time instead of runtime -->
     <Nullable>enable</Nullable>
     
   </PropertyGroup>
   
-  <!-- Files to copy to output directory when building -->
   <ItemGroup>
     
-    <!-- ratings.csv contains our 3 million user ratings -->
-    <!-- PreserveNewest means only copy if the source is newer than destination -->
-    <!-- CopyToOutputDirectory: copies when we build locally -->
-    <!-- CopyToPublishDirectory: copies when we publish for deployment -->
+
     <None Update="ratings.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
     
-    <!-- products.csv contains our 135,000 products -->
     <None Update="products.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
     
-    <!-- appsettings.json contains configuration like API keys -->
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

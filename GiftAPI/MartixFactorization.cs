@@ -4,27 +4,25 @@ namespace GiftApi;
 
 public class MatrixFactorization
 {
-    // Dimensions of our data
-    private readonly int _nUsers;      // Total number of users in dataset
-    private readonly int _nItems;      // Total number of products in dataset
-    private readonly int _nFactors;    // Number of latent factors to learn
+    private readonly int _nUsers;      // users
+    private readonly int _nItems;      // Psroducts
+    private readonly int _nFactors;    // Latent factors 888888888888888888
     
-    // The actual learned matrices - these are what the algorithm discovers
-    private readonly double[,] _userFactors;  // User preferences (users x factors)
-    private readonly double[,] _itemFactors;  // Product characteristics (items x factors)
+    private readonly double[,] _userFactors; 
+    private readonly double[,] _itemFactors;  
     
-    // Bias terms - some users rate everything high, some products are just better
-    private readonly double[] _userBias;  // Per-user bias (is this user generous/strict?)
-    private readonly double[] _itemBias;  // Per-item bias (is this product generally liked?)
+    // Bias, some users rate uneven, some products are just better
+    private readonly double[] _userBias;  // Is this user kind/strict
+    private readonly double[] _itemBias;  // Is this product "generally" liked
     
-    // Average rating across all users and products
+    // Average rating
     private double _globalMean;
     
-    // Hyperparameters for training
-    private const double LR = 0.01;   // Learning rate - how fast we update weights
-    private const double REG = 0.02;  // Regularization - prevents overfitting
+    // Parameters for training MF model
+    private const double LR = 0.01;   // Learning rate
+    private const double REG = 0.02;  // Regularization
 
-    // Constructor - initializes all the matrices with small random values
+    // Initialize all the matrices with random values
     public MatrixFactorization(int nUsers, int nItems, int numFactors = 20)
     {
         _nUsers = nUsers;
@@ -39,7 +37,8 @@ public class MatrixFactorization
         _userBias = new double[nUsers];
         _itemBias = new double[nItems];
 
-        // Initialize with small random values (seed 42 for reproducibility)
+        // Initialize with small random values
+        // Seed = 42
         var rnd = new Random(42);
         
         // Fill user factors with random values between 0 and 0.1

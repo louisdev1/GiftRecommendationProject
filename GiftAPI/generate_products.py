@@ -1,23 +1,15 @@
-"""
-Product Data Generator
-This script reads Amazon product metadata and creates a clean products.csv file
-with 15,000 gift-appropriate products from each of 9 categories (135,000 total)
-"""
 import gzip
 import json
 import csv
 from pathlib import Path
 
-# Set up file paths relative to this script
+# File paths needed for this script
 SCRIPT_DIR = Path(__file__).parent
 DATA_DIR = SCRIPT_DIR.parent / "data" / "amazon_raw"
 METADATA_DIR = DATA_DIR / "metadata"
 OUTPUT_FILE = SCRIPT_DIR / "products.csv"
 
-# How many products to take from each category
-PRODUCTS_PER_CATEGORY = 15000  # 15k per category = roughly 135k total
-
-# The 9 categories we're using for our gift recommendation system
+PRODUCTS_PER_CATEGORY = 15000
 CATEGORIES = [
     "Baby_Products",
     "Beauty_and_Personal_Care", 
@@ -29,52 +21,35 @@ CATEGORIES = [
     "Sports_and_Outdoors",
     "Toys_and_Games"
 ]
-
-# Words that indicate the product is NOT a good gift (accessories, parts, etc.)
 EXCLUDE_KEYWORDS = [
     'cable', 'adapter', 'charger', 'connector', 'cord', 'replacement part'
 ]
 
 def process_category(category):
-    """
-    Process one category and extract valid gift products
-    Returns a list of product dictionaries
-    """
-    # Build the path to the metadata file for this category
     meta_file = METADATA_DIR / f"meta_{category}.jsonl.gz"
     
-    # Check if file exists
     if not meta_file.exists():
         print(f"  Metadata file not found: {meta_file}")
         return []
     
     products = []
     
-    # Open the compressed JSON file
-    # Each line is a separate JSON object representing one product
     with gzip.open(meta_file, 'rt', encoding='utf-8') as f:
         for line in f:
-            # Stop when we have enough products from this category
             if len(products) >= PRODUCTS_PER_CATEGORY:
                 break
                 
             try:
-                # Parse the JSON line
                 item = json.loads(line)
-                
-                # Extract the ASIN (Amazon Standard Identification Number)
-                # parent_asin groups product variations, fallback to regular asin
-                asin = item.get('parent_asin') or item.get('asin')
-                
-                # Extract product name and price
+                asin = item.get('asin')
                 name = item.get('title', '')
                 price = item.get('price')
                 
-                # Skip products with missing essential data
+                # Skip products met missende data
                 if not name or not price or not asin:
                     continue
                 
-                # Convert price to float (handle both string and number formats)
+                # Price naar float
                 try:
                     if isinstance(price, str):
                         # Remove $ and commas, then convert to float
@@ -82,29 +57,23 @@ def process_category(category):
                     else:
                         price = float(price)
                 except:
-                    # If price conversion fails, skip this product
+                    # If price conversion fails,just skip product
                     continue
-                
-                # Only keep products in reasonable gift price range
-                # Too cheap (under $5) or too expensive (over $500) filtered out
                 if price < 5 or price > 500:
                     continue
                 
-                # Filter out non-gift items like cables and chargers
                 name_lower = name.lower()
                 if any(kw in name_lower for kw in EXCLUDE_KEYWORDS):
                     continue
                 
-                # Extract product image URL
+                # Product image URL
                 images = item.get('images', [])
                 image_url = ''
                 if images:
-                    # Handle different image formats in the data
+                    # Handle different image formats
                     if isinstance(images[0], dict):
-                        # Try to get large image first, fallback to thumbnail
                         image_url = images[0].get('large', images[0].get('thumb', ''))
                     elif isinstance(images[0], str):
-                        # Sometimes images are just strings
                         image_url = images[0]
                 
                 # Add this product to our list
@@ -112,22 +81,19 @@ def process_category(category):
                     'asin': asin,
                     'name': name,
                     'category': category,
-                    'price': round(price, 2),  # Round to 2 decimal places
+                    'price': round(price, 2),
                     'image_url': image_url
                 })
                 
             except:
-                # If anything goes wrong parsing this line, skip it
+                # Enkele fout = skip product
                 continue
     
     return products
 
 def main():
-    """Main function that coordinates the entire process"""
-    print("=" * 50)
-    print("GENERATING PRODUCTS.CSV (ALL PRODUCTS)")
+    print("PRODUCTS.CSV")
     print(f"Max per category: {PRODUCTS_PER_CATEGORY}")
-    print("=" * 50)
     
     # List to hold all products from all categories
     all_products = []
@@ -139,8 +105,7 @@ def main():
         print(f"  Found {len(products)} products")
         all_products.extend(products)
     
-    # Assign sequential product IDs (0, 1, 2, ...)
-    # These IDs are what the ML model will use
+    # Assign sequential product IDs
     for i, p in enumerate(all_products):
         p['product_id'] = i
     
@@ -164,10 +129,6 @@ def main():
                 p['image_url']
             ])
     
-    # Print summary statistics
-    print("\n" + "=" * 50)
-    print("SUMMARY")
-    print("=" * 50)
     
     # Count products per category
     from collections import Counter

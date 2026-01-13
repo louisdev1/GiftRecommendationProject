@@ -34,49 +34,6 @@ public class NaturalLanguageService
         } 
         catch 
         {
-            // If file doesn't exist or key is missing, continue without translation
-            // The system will still work, just won't translate non-English queries
-        }
-    }
-
-    // Main method - converts natural language text into structured query parameters
-    public async Task<GiftQuery> ParseQueryAsync(string input)
-    {
-        // Extract budget first (works better on original language)
-        var budget = ExtractBudget(input.ToLower());
-        
-        // Translate to English if needed (DeepL handles language detection)
-        string text = await TranslateToEnglish(input);
-        
-        // Parse the translated text for filters
-        var query = ParseFilters(text.ToLower());
-        
-        // Add budget information to query
-        if (budget.max.HasValue)
-        {
-            query.MaxPrice = budget.max;
-            query.TargetPrice = budget.target;
-        }
-        
-        return query;
-    }
-
-    // Translate text to English using DeepL API
-    private async Task<string> TranslateToEnglish(string text)
-    {
-        // If no API key, just return original text
-        if (string.IsNullOrEmpty(_apiKey)) return text;
-        
-        try 
-        {
-            // Prepare the translation request
-            var content = new FormUrlEncodedContent(new[] {
-                new KeyValuePair<string, string>("text", text),
-                new KeyValuePair<string, string>("target_lang", "EN")
-            });
-            
-            // Set authentication header
-            _http.DefaultRequestHeaders.Clear();
             _http.DefaultRequestHeaders.Add("Authorization", $"DeepL-Auth-Key {_apiKey}");
             
             // Send request to DeepL API
@@ -101,22 +58,11 @@ public class NaturalLanguageService
     private GiftQuery ParseFilters(string text)
     {
         var query = new GiftQuery { OriginalText = text };
-        
-        // Extract relationship (mom, dad, girlfriend, etc.)
         query.Relationship = ExtractMatch(text, _relationships);
-        
-        // Extract occasion (birthday, christmas, etc.)
         query.Occasion = ExtractMatch(text, _occasions);
-        
-        // Extract age (from phrases like "25 years old" or "teenager")
         query.Age = ExtractAge(text);
-        
-        // Determine gender from text or relationship
         query.Gender = GetGender(text, query.Relationship);
-        
-        // Suggest appropriate categories based on all the extracted info
         query.SuggestedCategories = GetCategories(query.Relationship, query.Occasion, query.Age);
-        
         return query;
     }
 
@@ -158,8 +104,7 @@ public class NaturalLanguageService
         if (Regex.IsMatch(text, @"\btoddler")) return 2;
         if (Regex.IsMatch(text, @"\bbaby|\binfant")) return 0;
         
-        // Extract explicit age numbers
-        // Matches patterns like "25 years old", "age 30", "45 yr old"
+        // Extract  age numbers
         var m = Regex.Match(text, @"(\d+)\s*(?:year|yr)s?\s*old|age\s*(\d+)");
         if (m.Success)
         {
@@ -171,24 +116,21 @@ public class NaturalLanguageService
         return null;  // Age not found
     }
 
-    // Extract budget from text (supports dollars and euros)
+    // Extract budget from text
     private (double? min, double? max, double? target) ExtractBudget(string text)
     {
-        // Match patterns like "$50", "50€", "50 euros", "50 dollars"
+        // Match patterns like "$50"
         var m = Regex.Match(text, 
             @"[\$€]\s*(\d+)|(\d+)\s*[\$€]|(\d+)\s*(?:dollar|euro)s?", 
             RegexOptions.IgnoreCase);
         
         if (m.Success) 
         {
-            // Extract the number from whichever group matched
+            // Extract the number, if not 1 use 2, and otherwise use 3
             string valueStr = m.Groups[1].Success ? m.Groups[1].Value : 
                             m.Groups[2].Success ? m.Groups[2].Value : 
                             m.Groups[3].Value;
             var val = double.Parse(valueStr);
-            
-            // Set max to the stated amount
-            // Set target to 85% of max (leaves some buffer)
             return (null, val, val * 0.85);
         }
         
@@ -198,18 +140,18 @@ public class NaturalLanguageService
     // Suggest categories based on relationship, occasion, and age
     private List<string> GetCategories(string? rel, string? occasion, int? age)
     {
-        // Age-based categories (most important for kids)
+        // Age-based categories
         if (age.HasValue && age < 16) 
         {
             // Babies (0-2 years)
             if (age < 3) 
                 return new() { "Baby_Products", "Toys_and_Games" };
             
-            // Young kids (3-8 years)
+            // (3-8 years)
             if (age < 9) 
                 return new() { "Toys_and_Games", "Sports_and_Outdoors" };
             
-            // Pre-teens (9-15 years)
+            // (9-15 years)
             return new() { "Toys_and_Games", "Electronics", "Sports_and_Outdoors" };
         }
 
@@ -219,25 +161,17 @@ public class NaturalLanguageService
         
         if (occasion == "christmas") 
         {
-            // Christmas gifts for females
             if (_female.Contains(rel)) 
                 return new() { "Home_and_Kitchen", "Beauty_and_Personal_Care", "Clothing_Shoes_and_Jewelry" };
-            
-            // Christmas gifts for males
             if (_male.Contains(rel)) 
                 return new() { "Electronics", "Home_and_Kitchen", "Sports_and_Outdoors" };
-            
-            // Generic Christmas gifts
             return new() { "Home_and_Kitchen", "Electronics", "Clothing_Shoes_and_Jewelry" };
         }
         
         if (occasion == "birthday") 
         {
-            // Birthday gifts for females
             if (_female.Contains(rel)) 
-                return new() { "Clothing_Shoes_and_Jewelry", "Beauty_and_Personal_Care", "Electronics" };
-            
-            // Birthday gifts for males
+                return new() { "Clothing_Shoes_and_Jewelry", "Beauty_and_Personal_Care", "Electronics" };            
             if (_male.Contains(rel)) 
                 return new() { "Electronics", "Sports_and_Outdoors", "Clothing_Shoes_and_Jewelry" };
         }
@@ -255,7 +189,7 @@ public class NaturalLanguageService
         if (new[] { "dog", "cat", "pet" }.Contains(rel)) 
             return new() { "Pet_Supplies" };
 
-        // No specific categories identified
+        // No specific categories
         return new();
     }
 
@@ -291,7 +225,6 @@ public class NaturalLanguageService
         ["pet"] = new[] { @"\bpet\b" }
     };
 
-    // Dictionary of occasion patterns for text matching
     private readonly Dictionary<string, string[]> _occasions = new() 
     {
         ["birthday"] = new[] { @"\bbirthday\b" },
@@ -301,7 +234,6 @@ public class NaturalLanguageService
     };
 }
 
-// Data structure to hold parsed query information
 public class GiftQuery
 {
     public string OriginalText { get; set; } = "";
